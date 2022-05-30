@@ -24,6 +24,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/ory/x/servicelocator"
 	"net/http"
 	"strings"
 	"sync"
@@ -62,8 +63,12 @@ func EnhanceMiddleware(ctx context.Context, d driver.Registry, n *negroni.Negron
 	if !networkx.AddressIsUnixSocket(address) {
 		n.UseFunc(x.RejectInsecureRequests(d, d.Config().TLS(ctx, iface)))
 	}
-	n.UseHandler(router)
 
+	for _, mw := range servicelocator.HTTPMiddlewares(ctx) {
+		n.Use(mw)
+	}
+
+	n.UseHandler(router)
 	if !enableCORS {
 		return n
 	}
